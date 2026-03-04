@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chilling Audio Visualizer</title>
+    <title>Zen Audio Visualizer</title>
     <style>
         :root {
             --bg-color: #011111;
@@ -16,10 +16,10 @@
             height: 100%;
             background-color: var(--bg-color);
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'Noto Sans', sans-serif;
+            color: white;
         }
 
-        /* The YouTube Video Background */
         #video-background {
             position: absolute;
             top: 0;
@@ -37,18 +37,17 @@
             left: 50%;
             width: 100vw;
             height: 100vh;
-            transform: translate(-50%, -50%) scale(1.1); /* Scale slightly to hide edges */
+            transform: translate(-50%, -50%) scale(1.15);
             object-fit: cover;
         }
 
-        /* Dark overlay to make the bars pop and soften the video */
         #overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle, rgba(1, 17, 17, 0.4) 0%, rgba(1, 17, 17, 0.8) 100%);
+            background: radial-gradient(circle, rgba(1, 17, 17, 0.3) 0%, rgba(1, 17, 17, 0.85) 100%);
             z-index: -1;
         }
 
@@ -68,126 +67,122 @@
             height: 100%;
         }
 
+        #quote-container {
+            position: absolute;
+            top: 20%;
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        #quote {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.5rem;
+            font-style: italic;
+            font-weight: 300;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
         #ui {
             position: absolute;
             bottom: 15%;
             z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
         }
 
         button {
-            padding: 16px 32px;
+            padding: 16px 40px;
             font-size: 18px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 40px;
             cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            letter-spacing: 1px;
+            backdrop-filter: blur(12px);
+            transition: all 0.4s ease;
+            letter-spacing: 2px;
             text-transform: uppercase;
         }
 
         button:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(255,255,255,0.1);
-        }
-
-        .status-msg {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            text-align: center;
-            opacity: 0;
-            transition: opacity 1s;
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
         }
     </style>
 </head>
 <body>
 
 <div id="video-background">
-    <!-- YouTube Embed with parameters for background loop -->
     <div id="player"></div>
 </div>
 
 <div id="overlay"></div>
 
 <div id="container">
+    <div id="quote-container">
+        <div id="quote">Quiet the mind, and the soul will speak.</div>
+    </div>
+
     <canvas id="visualizer"></canvas>
     
     <div id="ui">
-        <button id="startBtn">Start Chilling</button>
-        <div id="status" class="status-msg">Visuals syncing with audio...</div>
+        <button id="startBtn">Enter Zen State</button>
     </div>
 </div>
 
 <script>
-    // YouTube API Setup
+    const quotes = [
+        "Quiet the mind, and the soul will speak.",
+        "Peace is every step.",
+        "Be here now.",
+        "The way is not in the sky. The way is in the heart.",
+        "Nothing is permanent.",
+        "Smile, breathe and go slowly.",
+        "Where there is peace, there is joy.",
+        "Do not dwell in the past, do not dream of the future."
+    ];
+
     let player;
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    document.body.appendChild(tag);
 
     function onYouTubeIframeAPIReady() {
         player = new YT.Player('player', {
-            height: '100%',
-            width: '100%',
+            height: '100%', width: '100%',
             videoId: 'CE9bMo1oBzc',
-            playerVars: {
-                'autoplay': 0,
-                'controls': 0,
-                'loop': 1,
-                'playlist': 'CE9bMo1oBzc',
-                'mute': 0,
-                'modestbranding': 1,
-                'rel': 0,
-                'showinfo': 0
-            },
-            events: {
-                'onReady': onPlayerReady
-            }
+            playerVars: { 'autoplay': 0, 'controls': 0, 'loop': 1, 'playlist': 'CE9bMo1oBzc', 'mute': 0 },
         });
-    }
-
-    function onPlayerReady(event) {
-        // Ready to play when button clicked
     }
 
     const canvas = document.getElementById('visualizer');
     const ctx = canvas.getContext('2d');
     const startBtn = document.getElementById('startBtn');
-    const statusMsg = document.getElementById('status');
+    const quoteEl = document.getElementById('quote');
 
-    let audioCtx, analyser, dataArray, source, isInitialized = false;
+    let audioCtx, analyser, dataArray, isInitialized = false;
 
-    // Particle System (Sparkles)
+    // Sparkle Particles
     const particles = [];
     class Particle {
-        constructor() {
-            this.reset();
-        }
+        constructor() { this.reset(); }
         reset() {
             this.x = Math.random() * canvas.width;
             this.y = Math.random() * canvas.height;
-            this.vx = (Math.random() - 0.5) * 0.5;
-            this.vy = (Math.random() - 0.5) * 0.5;
-            this.size = Math.random() * 2 + 0.5;
-            this.alpha = Math.random() * 0.5 + 0.1;
-            this.life = Math.random() * 100 + 100;
+            this.vx = (Math.random() - 0.5) * 0.4;
+            this.vy = (Math.random() - 0.5) * 0.4;
+            this.size = Math.random() * 2 + 0.3;
+            this.alpha = Math.random() * 0.4 + 0.1;
+            this.life = Math.random() * 100 + 150;
         }
-        update(audioIntensity) {
-            this.x += this.vx * (1 + audioIntensity * 5);
-            this.y += this.vy * (1 + audioIntensity * 5);
-            this.life -= 0.5;
-            if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height || this.life <= 0) {
-                this.reset();
-            }
+        update(intensity) {
+            this.x += this.vx * (1 + intensity * 8);
+            this.y += this.vy * (1 + intensity * 8);
+            this.life -= 0.3;
+            if (this.life <= 0) this.reset();
         }
         draw(ctx) {
             ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
@@ -200,10 +195,10 @@
     for (let i = 0; i < 80; i++) particles.push(new Particle());
 
     const barConfigs = [
-        { gradient: ['#FFF8E1', '#E6B0AA'], glow: 'rgba(230, 176, 170, 0.6)' },
-        { gradient: ['#F7DC6F', '#F39C12'], glow: 'rgba(243, 156, 18, 0.6)' },
-        { gradient: ['#58D68D', '#239B56'], glow: 'rgba(35, 155, 86, 0.6)' },
-        { gradient: ['#EC7063', '#7B241C'], glow: 'rgba(236, 112, 99, 0.6)' }
+        { gradient: ['#FFF8E1', '#E6B0AA'], glow: 'rgba(230, 176, 170, 0.7)' },
+        { gradient: ['#F7DC6F', '#F39C12'], glow: 'rgba(243, 156, 18, 0.7)' },
+        { gradient: ['#58D68D', '#239B56'], glow: 'rgba(35, 155, 86, 0.7)' },
+        { gradient: ['#EC7063', '#7B241C'], glow: 'rgba(236, 112, 99, 0.7)' }
     ];
 
     function resize() {
@@ -221,20 +216,27 @@
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioCtx.createAnalyser();
-            source = audioCtx.createMediaStreamSource(stream);
+            const source = audioCtx.createMediaStreamSource(stream);
             source.connect(analyser);
             analyser.fftSize = 256;
+            analyser.smoothingTimeConstant = 0.85;
             dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-            if (player && player.playVideo) player.playVideo();
-            
+            if (player) player.playVideo();
             startBtn.style.display = 'none';
-            statusMsg.style.opacity = '1';
             isInitialized = true;
+            
+            quoteEl.style.opacity = 0.8;
+            setInterval(() => {
+                quoteEl.style.opacity = 0;
+                setTimeout(() => {
+                    quoteEl.innerText = quotes[Math.floor(Math.random()*quotes.length)];
+                    quoteEl.style.opacity = 0.8;
+                }, 2000);
+            }, 8000);
+
             draw();
-        } catch (err) {
-            alert("Microphone access is needed for the bars to react!");
-        }
+        } catch (err) { alert("Mic access needed!"); }
     }
 
     startBtn.addEventListener('click', init);
@@ -245,60 +247,47 @@
     function draw() {
         requestAnimationFrame(draw);
         analyser.getByteFrequencyData(dataArray);
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const barWidth = Math.min(70, width / 8);
-        const gap = barWidth * 0.4;
-        const totalWidth = (barWidth * 4) + (gap * 3);
-        const startX = (width - totalWidth) / 2;
-        const centerY = height / 2;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const barW = Math.min(75, w / 7);
+        const gap = barW * 0.45;
+        const startX = (w - ((barW * 4) + (gap * 3))) / 2;
+        const centerY = h / 2;
 
-        const indexes = [4, 12, 25, 45]; 
-        let sumIntensity = 0;
-
-        // Draw Sparkles first (background of the canvas)
         for (let p of particles) {
             p.update(globalIntensity);
             p.draw(ctx);
         }
 
+        const bands = [4, 12, 25, 45]; 
+        let sum = 0;
+
         for (let i = 0; i < 4; i++) {
-            const value = dataArray[indexes[i]];
-            const percent = value / 255;
-            sumIntensity += percent;
-            
-            const baseMinHeight = barWidth * 2.8; 
-            const dynamicRange = height * 0.35;
-            const target = baseMinHeight + (percent * dynamicRange * (1.2 + i * 0.2));
-            currentHeights[i] += (target - currentHeights[i]) * 0.12;
+            const val = dataArray[bands[i]] / 255;
+            sum += val;
+            const target = (barW * 2.2) + (val * h * 0.55 * (1.5 + i * 0.3));
+            currentHeights[i] += (target - currentHeights[i]) * 0.15;
 
-            const h = currentHeights[i];
-            const x = startX + (i * (barWidth + gap));
-            const y = centerY - (h / 2);
+            const bH = currentHeights[i];
+            const x = startX + (i * (barW + gap));
+            const y = centerY - (bH / 2);
 
-            // Enhanced Glow
-            ctx.shadowBlur = 30 + (percent * 40);
+            ctx.shadowBlur = 40 + (val * 60);
             ctx.shadowColor = barConfigs[i].glow;
             
-            const grad = ctx.createLinearGradient(x, y, x, y + h);
+            const grad = ctx.createLinearGradient(x, y, x, y + bH);
             grad.addColorStop(0, barConfigs[i].gradient[0]);
             grad.addColorStop(1, barConfigs[i].gradient[1]);
-
             ctx.fillStyle = grad;
             
-            // Capsule Shape
-            const radius = barWidth / 2;
             ctx.beginPath();
-            ctx.roundRect(x, y, barWidth, h, radius);
+            ctx.roundRect(x, y, barW, bH, barW / 2);
             ctx.fill();
-
-            // Reset for next
             ctx.shadowBlur = 0;
         }
-        globalIntensity = sumIntensity / 4;
+        globalIntensity = sum / 4;
     }
 </script>
 </body>
